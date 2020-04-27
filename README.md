@@ -1,5 +1,7 @@
 # BasConv
-A graph neural network based framework to do the basket recommendation
+A graph neural network based framework to do the basket recommendation. [Our paper](https://arxiv.org/abs/2001.09900) is 
+> Liu, Zhiwei, et al. "BasConv: Aggregating Heterogeneous Interactions for Basket Recommendation with Graph Convolutional Neural Network." Proceedings of the 2020 SIAM International Conference on Data Mining. Society for Industrial and Applied Mathematics, 2020.
+
 
 # Data
 Part of the instacart dataset is given in this repo. We have three files:
