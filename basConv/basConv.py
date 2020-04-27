@@ -1,19 +1,22 @@
 '''
 Created on 22 Aug. 2019
-Tensorflow Implementation of Neural Graph Collaborative Filtering (NGCF) model for basket recommendation
-Load all the adj mats (u2b, b2i) into one adj mat
+Author Zhiwei Liu (zliu213@uic.edu)
+Tensorflow Implementation of BasConv model for basket recommendation
+More details in our paper: 
+BasConv: Aggregating Heterogeneous Interactions for Basket Recommendation with Graph Convolutional Neural Network
+Load all the adj mats (u2b, b2i) as adj mat
 '''
 import tensorflow as tf
 import os
 import sys
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
-
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 from utility.helper import *
 from utility.batch_test_uAtt import *
 import pickle
 import numpy as np
 
-class NGCF(object):
+class BasConv(object):
     def __init__(self, data_config, pretrain_data):
         # argument settings
         self.model_type = 'ngcf'
@@ -28,10 +31,6 @@ class NGCF(object):
 
         self.n_fold = 100
 
-        # self.norm_adj_u2b = data_config['norm_adj_u2b']
-        # self.norm_adj_b2i = data_config['norm_adj_b2i']
-        # self.norm_adj_ubi = data_config['norm_adj_ubi']
-        # self.n_nonzero_elems = self.norm_adj_u2b.count_nonzero()
         self.inter_mat = data_config['inter_mat']
         for key in self.inter_mat:
             print('shape of ' + key + ' :', self.inter_mat[key].shape)
@@ -84,6 +83,7 @@ class NGCF(object):
             1. ngcf: defined in 'Neural Graph Collaborative Filtering', SIGIR2019;
             2. gcn:  defined in 'Semi-Supervised Classification with Graph Convolutional Networks', ICLR2018;
             3. gcmc: defined in 'Graph Convolutional Matrix Completion', KDD2018;
+            4. BasConv: defined in 'BasConv: Aggregating Heterogeneous Interactions for Basket Recommendation with Graph Convolutional Neural Network', SDM 2020
         """
         if self.alg_type in ['ngcf']:
             self.ua_embeddings, self.ba_embeddings, self.ia_embeddings = self._create_ngcf_embed_ubi_R()
@@ -93,6 +93,9 @@ class NGCF(object):
 
         elif self.alg_type in ['gcmc']:
             self.ua_embeddings, self.ia_embeddings = self._create_gcmc_embed()
+        
+        elif self.alg_type in ['basconv']:
+            self.ua_embeddings, self.ba_embeddings, self.ia_embeddings = self._create_basConv()
 
         """
         *********************************************************
@@ -143,17 +146,6 @@ class NGCF(object):
             print('using pretrained initialization')
 
         self.weight_size_list = [self.emb_dim] + self.weight_size
-        # user basket item convolutinal layer weights
-        # for k in range(self.n_layers):
-        #     all_weights['W_gc_%d' %k] = tf.Variable(
-        #         initializer([self.weight_size_list[k], self.weight_size_list[k+1]]), name='W_gc_%d' % k)
-        #     all_weights['b_gc_%d' %k] = tf.Variable(
-        #         initializer([1, self.weight_size_list[k+1]]), name='b_gc_%d' % k)
-
-        #     all_weights['W_bi_%d' % k] = tf.Variable(
-        #         initializer([self.weight_size_list[k], self.weight_size_list[k + 1]]), name='W_bi_%d' % k)
-        #     all_weights['b_bi_%d' % k] = tf.Variable(
-        #         initializer([1, self.weight_size_list[k + 1]]), name='b_bi_%d' % k)
         for k in range(self.n_layers):
             all_weights['W_self_%d' %k] = tf.Variable(
                 initializer([self.weight_size_list[k], self.weight_size_list[k+1]]), name='W_self_%d' % k)
@@ -240,7 +232,7 @@ class NGCF(object):
 
         return A_fold_hat
 
-    def _create_ngcf_embed_ubi_R(self):
+    def _create_basConv(self):
         basket_embedding = [self.weights['basket_embedding']]
         item_embedding = [self.weights['item_embedding']]
         user_embedding = [self.weights['user_embedding']]
@@ -406,7 +398,7 @@ def load_pretrained_data():
 
 if __name__ == '__main__':
     # os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
-    os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+    
     config = dict()
     config['n_users'] = data_generator.n_users
     config['n_items'] = data_generator.n_items
@@ -417,8 +409,6 @@ if __name__ == '__main__':
     Generate the Laplacian matrix, where each entry defines the decay factor (e.g., p_ui) between two connected nodes.
     """
     inter_mat = dict()
-    # plain_adj_u2b, norm_adj_u2b, mean_adj_u2b, plain_adj_b2i, norm_adj_b2i, mean_adj_b2i = data_generator.get_adj_mat()
-    # plain_adj_ubi, norm_adj_ubi, mean_adj_ubi = data_generator.get_adj_mat()
     adj_mat = data_generator.create_inter_mat(adj_type='plain')
     inter_mat['u2b'] = adj_mat[0]
     inter_mat['u2b_t'] = adj_mat[1]
@@ -426,22 +416,7 @@ if __name__ == '__main__':
     inter_mat['u2i_t'] = adj_mat[3]
     inter_mat['b2i'] = adj_mat[4]
     inter_mat['b2i_t'] = adj_mat[5]
-    # plain_adj_b2i, norm_adj_b2i, mean_adj_b2i = data_generator.get_adj_mat()
-    # if args.adj_type == 'plain':
-    #     config['norm_adj_ubi'] = plain_adj_ubi
-    #     print('use the plain adjacency matrix')
 
-    # elif args.adj_type == 'norm':
-    #     config['norm_adj_ubi'] = norm_adj_ubi
-    #     print('use the normalized adjacency matrix')
-
-    # elif args.adj_type == 'gcmc':
-    #     config['norm_adj_ubi'] = mean_adj_ubi
-    #     print('use the gcmc adjacency matrix')
-
-    # else:
-    #     config['norm_adj_ubi'] = mean_adj_ubi + sp.eye(mean_adj_ubi.shape[0])
-    #     print('use the mean adjacency matrix')
     config['inter_mat'] = inter_mat
     t0 = time()
 
@@ -450,7 +425,7 @@ if __name__ == '__main__':
     else:
         pretrain_data = None
 
-    model = NGCF(data_config=config, pretrain_data=pretrain_data)
+    model = BasConv(data_config=config, pretrain_data=pretrain_data)
 
     """
     *********************************************************
@@ -510,41 +485,6 @@ if __name__ == '__main__':
         cur_best_pre_0 = 0.
         print('without pretraining.')
 
-    """
-    *********************************************************
-    Get the performance w.r.t. different sparsity levels.
-    # """
-    # if args.report == 1:
-    #     assert args.test_flag == 'full'
-    #     users_to_test_list, split_state = data_generator.get_sparsity_split()
-    #     users_to_test_list.append(list(data_generator.test_set.keys()))
-    #     split_state.append('all')
-
-    #     report_path = '%sreport/%s/%s.result' % (args.proj_path, args.dataset, model.model_type)
-    #     ensureDir(report_path)
-    #     f = open(report_path, 'w')
-    #     f.write(
-    #         'embed_size=%d, lr=%.4f, layer_size=%s, keep_prob=%s, regs=%s, loss_type=%s, adj_type=%s\n'
-    #         % (args.embed_size, args.lr, args.layer_size, args.keep_prob, args.regs, args.loss_type, args.adj_type))
-
-    #     for i, users_to_test in enumerate(users_to_test_list):
-    #         ret = test(sess, model, users_to_test, drop_flag=True)
-
-    #         final_perf = "recall=[%s], precision=[%s], hit=[%s], ndcg=[%s]" % \
-    #                      ('\t'.join(['%.5f' % r for r in ret['recall']]),
-    #                       '\t'.join(['%.5f' % r for r in ret['precision']]),
-    #                       '\t'.join(['%.5f' % r for r in ret['hit_ratio']]),
-    #                       '\t'.join(['%.5f' % r for r in ret['ndcg']]))
-    #         print(final_perf)
-
-    #         f.write('\t%s\n\t%s\n' % (split_state[i], final_perf))
-    #     f.close()
-    #     exit()
-
-    """
-    *********************************************************
-    Train.
-    """
     loss_loger, pre_loger, rec_loger, ndcg_loger, hit_loger = [], [], [], [], []
     stopping_step = 0
     should_stop = False
