@@ -10,6 +10,8 @@ Part of the instacart dataset is given in this repo. We have three files:
   Each row is ``baset_id, item_id, item_id, ...``
 - ``testb2i.txt``: \
   Each row is ``baset_id, item_id, item_id, ...``
+  
+The complete dataset of instacart can be downloaded [here](https://www.instacart.com/datasets/grocery-shopping-2017)
 
 # Running
 Run the code with script:
