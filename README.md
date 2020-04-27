@@ -14,7 +14,7 @@ Part of the instacart dataset is given in this repo. We have three files:
 The complete dataset of instacart can be downloaded [here](https://www.instacart.com/datasets/grocery-shopping-2017)
 
 # Running
-Run the code with script:
+Run the code under ``./basConv/`` folder with script:
 ```
 python basConv.py --dataset inscart_1 --regs [1e-4] --alg_type basconv --embed_size 64 --layer_size [64,64] --lr 0.0002 --save_flag 1 --pretrain -1 --batch_size 4096 --epoch 2000 --verbose 50 --node_dropout_flag 0 --mess_dropout [0.2,0.2]
 ```
